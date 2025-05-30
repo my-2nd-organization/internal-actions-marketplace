@@ -81,14 +81,22 @@ def generate_index(nav_entries):
     for entry in nav_entries:
         for name, path in entry.items():
             html_cards += f"""
-<div class="card">
-  <h3>{name}</h3>
-  <a href="{path}">View Action</a>
-</div>
+<a href="{path}" class="card-link">
+  <div class="card">
+    <h3>{name}</h3>
+    <p>View Action</p>
+  </div>
+</a>
 """
+
     index_content = f"""<!-- Auto-generated Index Page -->
 <style>
-.cards {{ display: flex; flex-wrap: wrap; gap: 1rem; }}
+.cards {{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1rem;
+}}
 .card {{
   background: #0d1117;
   padding: 1rem;
@@ -96,8 +104,20 @@ def generate_index(nav_entries):
   border-radius: 10px;
   border: 1px solid #444;
   color: white;
+  transition: transform 0.2s ease;
 }}
-.card a {{ color: #58a6ff; text-decoration: none; }}
+.card:hover {{
+  transform: scale(1.03);
+  border-color: #58a6ff;
+}}
+.card a {{
+  color: #58a6ff;
+  text-decoration: none;
+}}
+.card-link {{
+  text-decoration: none;
+  color: inherit;
+}}
 </style>
 
 <div class="cards">
