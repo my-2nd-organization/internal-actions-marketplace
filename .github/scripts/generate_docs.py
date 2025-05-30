@@ -1,127 +1,64 @@
 import os
-import requests
-import base64
 import yaml
 
-# Constants
-GITHUB_API_URL = "https://api.github.com"
-ORG_NAME = "NML-Actions"
-MARKETPLACE_DIR = "docs/actions"
-INDEX_MD_PATH = "docs/index.md"
-HEADERS = {
-    "Accept": "application/vnd.github.v3+json",
-    "Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"
-}
+MARKETPLACE_DIR = "docs"
+ACTIONS_DIR = os.path.join(MARKETPLACE_DIR, "actions")
+MKDOCS_YML_PATH = "mkdocs.yml"
+SITE_NAME = "Internal Marketplace"
 
+# Step 1: Collect all markdown files inside docs/actions
+def collect_actions():
+    actions = []
+    for filename in sorted(os.listdir(ACTIONS_DIR)):
+        if filename.endswith(".md"):
+            action_name = filename.replace(".md", "").replace("-", " ").title()
+            action_path = f"actions/{filename}"
+            actions.append({action_name: action_path})
+    return actions
 
-def get_repos(org):
-    """Fetch all repositories under the organization."""
-    repos = []
-    page = 1
-    while True:
-        url = f"{GITHUB_API_URL}/orgs/{org}/repos?per_page=100&page={page}"
-        response = requests.get(url, headers=HEADERS)
-        if response.status_code != 200:
-            print(f"Failed to fetch repos: {response.status_code}")
-            break
-        data = response.json()
-        if not data:
-            break
-        repos.extend(data)
-        page += 1
-    return repos
+# Step 2: Generate mkdocs.yml dynamically
+def generate_mkdocs_yml(actions):
+    config = {
+        "site_name": SITE_NAME,
+        "theme": {
+            "name": "material"
+        },
+        "nav": [
+            {"Home": "index.md"},
+            {"Actions": actions}
+        ]
+    }
+    with open(MKDOCS_YML_PATH, "w") as f:
+        yaml.dump(config, f, sort_keys=False)
+    print("✅ mkdocs.yml generated.")
 
+# Step 3: Generate index.md with HTML card-based layout
+def generate_index_md(actions):
+    index_path = os.path.join(MARKETPLACE_DIR, "index.md")
+    html = [
+        "<style>",
+        ".cards { display: flex; flex-wrap: wrap; gap: 1rem; }",
+        ".card { background: #0d1117; padding: 1rem; width: 250px; border-radius: 10px; border: 1px solid #444; color: white; }",
+        ".card a { color: #58a6ff; text-decoration: none; }",
+        "</style>",
+        "<div class='cards'>"
+    ]
+    for item in actions:
+        for name, path in item.items():
+            html.append(f"""
+  <div class="card">
+    <h4>{name}</h4>
+    <p><a href="{path}">View Action</a></p>
+  </div>
+""")
+    html.append("</div>")
 
-def fetch_action_yaml(repo):
-    """Fetch the content of action.yml from the repository."""
-    url = f"{GITHUB_API_URL}/repos/{ORG_NAME}/{repo}/contents/action.yml"
-    response = requests.get(url, headers=HEADERS)
-    if response.status_code != 200:
-        return None
-    content = base64.b64decode(response.json()["content"]).decode("utf-8")
-    return yaml.safe_load(content)
+    with open(index_path, "w") as f:
+        f.write("\n".join(html))
+    print("✅ index.md generated with cards.")
 
-
-def write_action_docs(repo_name, action_data):
-    """Generate a Markdown file for the action."""
-    os.makedirs(MARKETPLACE_DIR, exist_ok=True)
-    doc_path = os.path.join(MARKETPLACE_DIR, f"{repo_name}.md")
-    with open(doc_path, "w") as f:
-        f.write(f"# {action_data.get('name', repo_name)}\n\n")
-        f.write(f"**Description:** {action_data.get('description', 'No description')}.\n\n")
-        f.write("## Usage\n\n")
-        f.write(f"```yaml\nuses: {ORG_NAME}/{repo_name}@main\n```\n")
-
-
-def generate_index(actions_info):
-    """Generate index.md with card-style HTML layout."""
-    with open(INDEX_MD_PATH, "w") as f:
-        f.write("# Internal Actions Marketplace\n\n")
-        f.write("<style>\n")
-        f.write("""
-.cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-.card {
-  background: #0d1117;
-  padding: 1rem;
-  width: 250px;
-  border-radius: 10px;
-  border: 1px solid #444;
-  color: white;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-}
-.card h4 {
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-}
-.card p {
-  font-size: 0.9rem;
-  color: #ccc;
-}
-.card a {
-  color: #58a6ff;
-  text-decoration: none;
-  font-weight: bold;
-}
-.card a:hover {
-  text-decoration: underline;
-}
-</style>\n\n""")
-        f.write('<div class="cards">\n')
-        for action in actions_info:
-            f.write(f"""  <div class="card">
-    <h4>{action['name']}</h4>
-    <p>{action['description']}</p>
-    <p><a href="actions/{action['repo']}/">View Action</a></p>
-  </div>\n""")
-        f.write("</div>\n")
-
-
-def main():
-    repos = get_repos(ORG_NAME)
-    actions_info = []
-
-    for repo in repos:
-        repo_name = repo["name"]
-        action_data = fetch_action_yaml(repo_name)
-        if not action_data:
-            print(f"Skipping {repo_name}: action.yml not found.")
-            continue
-
-        write_action_docs(repo_name, action_data)
-
-        actions_info.append({
-            "repo": repo_name,
-            "name": action_data.get("name", repo_name),
-            "description": action_data.get("description", "No description available.")
-        })
-
-    generate_index(actions_info)
-
-
+# Main
 if __name__ == "__main__":
-    main()
+    actions = collect_actions()
+    generate_index_md(actions)
+    generate_mkdocs_yml(actions)
