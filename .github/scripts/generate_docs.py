@@ -80,8 +80,9 @@ def generate_index(nav_entries):
     html_cards = ""
     for entry in nav_entries:
         for name, path in entry.items():
+            clean_path = path.replace(".md", "")  # 🔧 FIX: for GitHub Pages clean URLs
             html_cards += f"""
-<a href="{path}" class="card-link">
+<a href="{clean_path}" class="card-link">
   <div class="card">
     <h3>{name}</h3>
     <p>View Action</p>
