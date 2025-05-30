@@ -2,11 +2,13 @@ name: Sync Marketplace Docs
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # Runs daily at 3AM
-  workflow_dispatch:       # Allows manual trigger
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   sync-docs:
@@ -23,17 +25,18 @@ jobs:
       - name: Install dependencies
         run: pip install PyYAML requests mkdocs mkdocs-material
 
-      - name: Generate Docs from Actions in NML-Actions
+      - name: Generate Docs from NML-Actions
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python .github/scripts/generate_docs.py
 
-      - name: Deploy to GitHub Pages
+      - name: Build MkDocs Site
+        run: mkdocs build
+
+      - name: Deploy to GitHub Pages (peaceiris)
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
+          publish_branch: gh-pages
           enable_jekyll: false
-
-      - name: Build MkDocs Site
-        run: mkdocs build
