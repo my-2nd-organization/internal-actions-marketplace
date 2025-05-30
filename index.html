@@ -59,11 +59,6 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
-        
-        <a href="#internal-github-actions-marketplace" class="md-skip">
-          Skip to content
-        </a>
-      
     </div>
     <div data-md-component="announce">
       
@@ -198,8 +193,6 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
-      
       
       <a href="." class="md-nav__link md-nav__link--active">
         
@@ -325,8 +318,6 @@
   
   
   
-    
-  
   
 </nav>
                   </div>
@@ -342,9 +333,31 @@
 
 
 
-<h1 id="internal-github-actions-marketplace">Internal GitHub Actions Marketplace</h1>
-<p>Welcome! This site lists all internal GitHub Actions maintained by the engineering team.</p>
-<p>Browse the <strong>Actions</strong> section to find reusable tools.</p>
+  <h1>Home</h1>
+
+<style>
+.cards { display: flex; flex-wrap: wrap; gap: 1rem; }
+.card {
+  background: #0d1117;
+  padding: 1rem;
+  width: 250px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  color: white;
+}
+.card a { color: #58a6ff; text-decoration: none; }
+</style>
+
+<div class="cards">
+  {% for action in config.nav[1]['Actions'] %}
+  {% for name, path in action.items() %}
+  <div class="card">
+    <h4>{{ name }}</h4>
+    <p><a href="{{ path }}">View Action</a></p>
+  </div>
+  {% endfor %}
+  {% endfor %}
+</div>
 
 
 
