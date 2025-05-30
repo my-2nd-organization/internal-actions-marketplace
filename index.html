@@ -335,6 +335,7 @@
 
   <h1>Home</h1>
 
+<!-- Auto-generated Index Page -->
 <style>
 .cards { display: flex; flex-wrap: wrap; gap: 1rem; }
 .card {
@@ -349,14 +350,17 @@
 </style>
 
 <div class="cards">
-  {% for action in config.nav[1]['Actions'] %}
-  {% for name, path in action.items() %}
-  <div class="card">
-    <h4>{{ name }}</h4>
-    <p><a href="{{ path }}">View Action</a></p>
-  </div>
-  {% endfor %}
-  {% endfor %}
+
+<div class="card">
+  <h3>Compile C Code</h3>
+  <a href="actions/compilation.md">View Action</a>
+</div>
+
+<div class="card">
+  <h3>Static Code Analysis</h3>
+  <a href="actions/cppcheck.md">View Action</a>
+</div>
+
 </div>
 
 
