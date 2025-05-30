@@ -2,15 +2,19 @@ import os
 import requests
 import yaml
 
-ORG = os.environ['ACTION_ORG']
+# Organization where all action repos live
+ORG = "NML-Actions"
+
+# GitHub token for API access (automatically injected in GitHub Actions)
 TOKEN = os.environ['GITHUB_TOKEN']
 HEADERS = {'Authorization': f'token {TOKEN}'}
 
 MARKETPLACE_MD_DIR = 'docs/actions'
 os.makedirs(MARKETPLACE_MD_DIR, exist_ok=True)
 
-# Get all repos in the org
-repos = requests.get(f"https://api.github.com/orgs/{ORG}/repos", headers=HEADERS).json()
+# Fetch all repositories in the organization
+repos_url = f"https://api.github.com/orgs/{ORG}/repos?per_page=100"
+repos = requests.get(repos_url, headers=HEADERS).json()
 
 nav = [
     {'Home': 'index.md'},
@@ -20,39 +24,50 @@ nav = [
 for repo in repos:
     name = repo['name']
     default_branch = repo['default_branch']
-    action_url = f"https://raw.githubusercontent.com/{ORG}/{name}/{default_branch}/action.yml"
-    readme_url = f"https://raw.githubusercontent.com/{ORG}/{name}/{default_branch}/README.md"
+    action_yml_url = f"https://raw.githubusercontent.com/{ORG}/{name}/{default_branch}/action.yml"
 
     print(f"Processing: {name}")
 
     # Try fetching action.yml
-    r = requests.get(action_url, headers=HEADERS)
+    r = requests.get(action_yml_url, headers=HEADERS)
     if r.status_code != 200:
+        print(f"❌ Skipping {name}, no action.yml found.")
         continue
-    action = yaml.safe_load(r.text)
 
-    # Generate MD page
-    md_path = f"{MARKETPLACE_MD_DIR}/{name}.md"
+    try:
+        action_data = yaml.safe_load(r.text)
+    except Exception as e:
+        print(f"⚠️ Error parsing action.yml for {name}: {e}")
+        continue
+
+    action_title = action_data.get('name', name)
+    action_desc = action_data.get('description', 'No description available.')
+
+    # Generate Markdown documentation for the action
+    md_filename = f"{name}.md"
+    md_path = os.path.join(MARKETPLACE_MD_DIR, md_filename)
     with open(md_path, 'w') as f:
-        f.write(f"# {action.get('name', name)}\n\n")
-        f.write(f"**Description**: {action.get('description', '')}\n\n")
-        f.write("## Usage\n```yaml\n")
+        f.write(f"# {action_title}\n\n")
+        f.write(f"**Description:** {action_desc}\n\n")
+        f.write("## Usage\n")
+        f.write("```yaml\n")
         f.write(f"uses: {ORG}/{name}@{default_branch}\n")
-        f.write("```")
+        f.write("```\n")
 
-    nav[1]['Actions'].append({action.get('name', name): f"actions/{name}.md"})
+    # Add to navigation
+    nav[1]['Actions'].append({action_title: f"actions/{md_filename}"})
 
-# Write mkdocs.yml
+# Write updated mkdocs.yml
 with open('mkdocs.yml', 'w') as f:
     f.write("site_name: Internal Actions Marketplace\n")
     f.write("theme:\n  name: material\n")
     f.write("nav:\n")
-    for item in nav:
-        for label, link in item.items():
-            if isinstance(link, list):
+    for section in nav:
+        for label, links in section.items():
+            if isinstance(links, list):
                 f.write(f"  - {label}:\n")
-                for sub in link:
-                    for sub_label, sub_link in sub.items():
+                for link in links:
+                    for sub_label, sub_link in link.items():
                         f.write(f"      - {sub_label}: {sub_link}\n")
             else:
-                f.write(f"  - {label}: {link}\n")
+                f.write(f"  - {label}: {links}\n")
