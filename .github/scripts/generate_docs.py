@@ -34,12 +34,25 @@ def fetch_action_yaml(repo_name):
         return yaml.safe_load(requests.get(res.json()['download_url']).text)
     return None
 
+def fetch_readme_md(repo_name):
+    url = f"{GITHUB_API}/repos/{ORG_NAME}/{repo_name}/readme"
+    res = requests.get(url, headers=HEADERS)
+    if res.status_code == 200:
+        download_url = res.json().get("download_url")
+        if download_url:
+            return requests.get(download_url).text
+    return None
+
 def write_action_doc(repo, action_data):
     name = action_data.get("name", repo)
     desc = action_data.get("description", "")
     usage = f"```yaml\nuses: {ORG_NAME}/{repo}@main\n```"
 
-    md_content = f"# {name}\n\n**Description:** {desc}\n\n## Usage\n\n{usage}\n"
+    # Try fetching README.md
+    readme_content = fetch_readme_md(repo)
+    readme_section = f"\n---\n\n## README\n\n{readme_content}" if readme_content else ""
+
+    md_content = f"# {name}\n\n**Description:** {desc}\n\n## Usage\n\n{usage}{readme_section}\n"
     path = os.path.join(ACTIONS_DIR, f"{repo}.md")
     with open(path, "w") as f:
         f.write(md_content)
